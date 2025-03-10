@@ -9,6 +9,12 @@ from prompt_engineering import generate_json_resume, tailor_resume
 from render import render_latex
 import json
 
+st.set_page_config(
+    page_title="Senti AI: HR Demo",
+    page_icon=":clipboard:",
+    layout="wide",
+    initial_sidebar_state="auto",
+)
 
 def select_llm_model():
     model_type = st.sidebar.selectbox(
@@ -43,13 +49,6 @@ def get_llm_model_and_api(model_type):
 
 
 if __name__ == '__main__':
-   
-    st.set_page_config(
-        page_title="Senti AI: HR Demo",
-        page_icon=":clipboard:",
-        layout="wide",
-        initial_sidebar_state="auto",
-    )
 
     st.markdown(
         f"""
@@ -148,5 +147,3 @@ if __name__ == '__main__':
                 st.write(e)
     else:
         st.info("Please upload a file to get started.")
-
-col1, col2 = st.columns(2)
