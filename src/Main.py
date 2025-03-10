@@ -13,7 +13,7 @@ import json
 def select_llm_model():
     model_type = st.selectbox(
         "Select the model you want to use:",
-        ["OpenAI", "Gemini"],
+        ["Gemini"],
         index=0
     )
     return model_type
@@ -61,10 +61,10 @@ if __name__ == '__main__':
     )
 
     st.markdown(
-        "Welcome to ResuLLMe! Drop your previous CV below, select one of the templates, and let the LLMs generate your resume for you"
+        "Senti AI: HR Doc AI + Gen AI Demo! Upload a sample resume, and let the AI extract information and generate assssment"
     )
 
-    uploaded_file = st.file_uploader("Choose a file", type=["pdf", "docx", "txt", "json"])
+    uploaded_file = st.file_uploader("Choose a file", type=["pdf"])
 
     template_options = list(template_commands.keys())
 
