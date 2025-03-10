@@ -9,25 +9,23 @@ from prompt_engineering import generate_json_resume, tailor_resume
 from render import render_latex
 import json
 
-
 def select_llm_model():
-    model_type = st.selectbox(
+    model_type = st.sidebar.selectbox(
         "Select the model you want to use:",
         ["Gemini"],
         index=0
     )
     return model_type
 
-
 def get_llm_model_and_api(model_type):
     if model_type == "OpenAI":
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            api_key = st.text_input(
+            api_key = st.sidebar.text_input(
                 "Enter your OpenAI API Key: [(click here to obtain a new key if you do not have one)](https://platform.openai.com/account/api-keys)",
                 type="password",
             )
-        api_model = os.getenv("OPENAI_DEFAULT_MODEL") or st.selectbox(
+        api_model = os.getenv("OPENAI_DEFAULT_MODEL") or st.sidebar.selectbox(
             "Select a model to use for the LLMs (gpt-3.5-turbo is the most well-tested):",
             ["gpt-3.5-turbo", "gpt-4-turbo", "gpt-4o"],
             index=0,
@@ -35,7 +33,7 @@ def get_llm_model_and_api(model_type):
     else:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            api_key = st.text_input(
+            api_key = st.sidebar.text_input(
                 "Enter your Gemini API Key: [(contact Gemini support for more details)]",
                 type="password",
             )
@@ -63,7 +61,7 @@ if __name__ == '__main__':
         "Doc AI + Gen AI Demo! Upload a sample resume, and let the AI extract information and generate assssment"
     )
 
-    uploaded_file = st.file_uploader("Choose a file", type=["pdf"])
+    uploaded_file = st.sidebar.file_uploader("Choose a file", type=["pdf"])
 
     template_options = list(template_commands.keys())
 
@@ -151,4 +149,5 @@ if __name__ == '__main__':
         st.info("Please upload a file to get started.")
 
 col1, col2 = st.columns(2)
+
 my_upload = st.sidebar.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
