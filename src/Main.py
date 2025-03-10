@@ -16,6 +16,8 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
+st.sidebar.write("## Upload Resume :gear:")
+
 def select_llm_model():
     model_type = st.sidebar.selectbox(
         "Select the model you want to use:",
