@@ -60,7 +60,7 @@ if __name__ == '__main__':
     )
 
     st.markdown(
-        "Senti AI: HR Doc AI + Gen AI Demo! Upload a sample resume, and let the AI extract information and generate assssment"
+        "Doc AI + Gen AI Demo! Upload a sample resume, and let the AI extract information and generate assssment"
     )
 
     uploaded_file = st.file_uploader("Choose a file", type=["pdf"])
@@ -149,3 +149,6 @@ if __name__ == '__main__':
                 st.write(e)
     else:
         st.info("Please upload a file to get started.")
+
+col1, col2 = st.columns(2)
+my_upload = st.sidebar.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
