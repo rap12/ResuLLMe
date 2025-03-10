@@ -9,6 +9,7 @@ from prompt_engineering import generate_json_resume, tailor_resume
 from render import render_latex
 import json
 
+col1, col2 = st.columns(2)
 st.sidebar.write("## Upload Resume :gear:")
 
 def select_llm_model():
@@ -149,3 +150,5 @@ if __name__ == '__main__':
                 st.write(e)
     else:
         st.info("Please upload a file to get started.")
+
+col1, col2 = st.columns(2)
