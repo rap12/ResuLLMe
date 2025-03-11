@@ -1,13 +1,39 @@
 import streamlit as st
 import streamlit_ext as ste
 import os
-import openai
+import google.generativeai as genai
 
 from doc_utils import extract_text_from_upload
-from templates import generate_latex, template_commands
-from prompt_engineering import generate_json_resume, tailor_resume
-from render import render_latex
-import json
+
+PROMPT_ASSESSMENT = """
+You are an HR professional who reviews and assess resume of applicants. Extract the following fields in this uploaded resume:
+- Name
+- Email
+- Mobile Number
+- Check the latest education. Mention \"College\" if the last degree was college, Mention \"Post Grad\" if last degree was masteral and above
+- Summarize her related experience in accounting as a list
+- Check if the applicants fits the attached job description. Assess if the Applicant \"Pass\" or \"Fail\"  then provide a 3-4 bullet explanation to support your assessment
+- Provide a list of interview questions
+
+"""
+OUTPUT_FORMAT = """
+Follow the output format below and remove any conversational introduction:
+
+Applicant Information [style: bold header]
+- Name: 
+- Email: 
+- Mobile Number: 
+- Highest Educational Attainment: 
+- Related Experience: [List as sub-bullets]
+
+AI Assessment (Resume x Job Description) [style: bold header]
+- Pass or Fail:
+- Explanation: [List as sub-bullets]
+
+Recommended Interview Question [style: bold header]
+- [List as bullet]
+"""
+
 
 st.set_page_config(
     page_title="Senti AI: HR Demo",
@@ -18,36 +44,34 @@ st.set_page_config(
 
 st.sidebar.write("## Upload Resume :gear:")
 
-def select_llm_model():
-    model_type = st.sidebar.selectbox(
-        "Select the model you want to use:",
-        ["Gemini"],
-        index=0
-    )
-    return model_type
-
 def get_llm_model_and_api(model_type):
-    if model_type == "OpenAI":
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            api_key = st.sidebar.text_input(
-                "Enter your OpenAI API Key: [(click here to obtain a new key if you do not have one)](https://platform.openai.com/account/api-keys)",
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        api_key = st.sidebar.text_input(
+                "Enter your API Key:",
                 type="password",
-            )
-        api_model = os.getenv("OPENAI_DEFAULT_MODEL") or st.sidebar.selectbox(
-            "Select a model to use for the LLMs (gpt-3.5-turbo is the most well-tested):",
-            ["gpt-3.5-turbo", "gpt-4-turbo", "gpt-4o"],
-            index=0,
         )
-    else:
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            api_key = st.sidebar.text_input(
-                "Enter your Gemini API Key: [(contact Gemini support for more details)]",
-                type="password",
-            )
-        api_model = "gemini-1.5-flash"
+    api_model = "gemini-2.0-flash"
     return api_key, api_model
+
+
+def assess_resume(text_resume, text_jd, api_key):
+    """Generate a JSON resume from a CV text"""
+    
+    model = "gemini-2.0-flash"
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(model)
+
+
+    full_prompt = f"{PROMPT_ASSESSMENT}\n\nHere's the resume: {text_resume}\nHere's the job description: {text_jd}\n\n {OUTPUT_FORMAT}"
+    response = model.generate_content(full_prompt)
+    answer = response.parts[0].text
+    answer = answer.strip("'").replace("```json\n", "").replace("\n```", "")
+
+    return answer
+
+
 
 
 if __name__ == '__main__':
@@ -63,89 +87,30 @@ if __name__ == '__main__':
         "Doc AI + Gen AI Demo! Upload a sample resume, and let the AI extract information and generate assssment"
     )
 
-    uploaded_file = st.sidebar.file_uploader("Choose a file", type=["pdf"])
+    model_type = "Gemini"
+    api_key, api_model = get_llm_model_and_api(model_type)
 
-    template_options = list(template_commands.keys())
+    uploaded_file = st.sidebar.file_uploader("Upload Resume", type=["pdf"])
 
-    if uploaded_file is not None:
+    uploaded_desc = st.sidebar.file_uploader("Upload Job Description", type=["pdf"])
+
+    generate_button = st.sidebar.button("Assess Resume")
+
+
+    if uploaded_file and uploaded_desc is not None:
         # Get the CV data that we need to convert to json
-        text = extract_text_from_upload(uploaded_file)
+        text_resume = extract_text_from_upload(uploaded_file)
+        text_jd = extract_text_from_upload(uploaded_desc)
 
-        if len(text) < 50:
+        if len(text_resume) < 50:
             st.warning("The text extracted from the uploaded file is too short. Are you sure this is the correct file?",
                        icon="⚠️")
 
-        model_type = select_llm_model()
-        api_key, api_model = get_llm_model_and_api(model_type)
-
-        chosen_option = st.selectbox(
-            "Select a template to use for your resume [(see templates)](/Template_Gallery)",
-            template_options,
-            index=0,  # default to the first option
-        )
-
-        section_ordering = st.multiselect(
-            "Optional: which section ordering would you like to use?",
-            ["education", "work", "skills", "projects", "awards"],
-            ["education", "work", "skills", "projects", "awards"],
-        )
-
-        improve_check = st.checkbox("I want to improve the resume with LLMs", value=False)
-
-        generate_button = st.button("Generate Resume")
-
         if generate_button:
-            try:
-                if improve_check:
-                    with st.spinner("Tailoring the resume"):
-                        text = tailor_resume(text, api_key, api_model, model_type)
+            with st.spinner("Assessing Resume"):
+                ai_assesment = assess_resume(text_resume, text_jd, api_key)
 
-                json_resume = generate_json_resume(text, api_key, api_model, model_type)
-                latex_resume = generate_latex(chosen_option, json_resume, section_ordering)
+            st.info(ai_assesment)
 
-                resume_bytes = render_latex(template_commands[chosen_option], latex_resume)
-
-                col1, col2, col3 = st.columns(3)
-
-                try:
-                    with col1:
-                        btn = ste.download_button(
-                            label="Download PDF",
-                            data=resume_bytes,
-                            file_name="resume.pdf",
-                            mime="application/pdf",
-                        )
-                except Exception as e:
-                    st.write(e)
-
-                with col2:
-                    ste.download_button(
-                        label="Download LaTeX Source",
-                        data=latex_resume,
-                        file_name="resume.tex",
-                        mime="application/x-tex",
-                    )
-
-                with col3:
-                    ste.download_button(
-                        label="Download JSON Source",
-                        data=json.dumps(json_resume, indent=4),
-                        file_name="resume.json",
-                        mime="text/json",
-                    )
-            except openai.RateLimitError as e:
-                st.markdown(
-                    "It looks like you do not have OpenAI API credits left. Check [OpenAI's usage webpage for more information](https://platform.openai.com/account/usage)"
-                )
-                st.write(e)
-            except openai.NotFoundError as e:
-                st.warning(
-                    "It looks like you do not have entered you Credit Card information on OpenAI's site. Buy pre-paid credits to use the API and try again.",
-                    icon="💳"
-                )
-                st.write(e)
-            except Exception as e:
-                st.error("An error occurred while generating the resume. Please try again.")
-                st.write(e)
     else:
-        st.info("Please upload a file to get started.")
+        st.info("Please upload files to get started.")
